@@ -1,2 +1,3 @@
 # plugin-meraki
-Dashboard Plugin For Meraki
+
+Dashboard Plugin For Meraki Networks
