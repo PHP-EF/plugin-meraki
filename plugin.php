@@ -13,7 +13,7 @@ $GLOBALS['plugins']['Meraki'] = [ // Plugin Name
     'author' => 'TinyTechLabUK', // Who wrote the plugin
     'category' => 'Network', // One to Two Word Description
     'link' => 'https://github.com/PHP-EF/plugin-meraki', // Link to plugin info
-    'version' => '1.0.0', // SemVer of plugin
+    'version' => '1.0.1', // SemVer of plugin
     'image' => 'logo.png', // 1:1 non transparent image for plugin
     'settings' => true, // does plugin need a settings modal?
     'api' => '/api/plugin/Meraki/settings', // api route for settings page, or null if no settings page
@@ -69,7 +69,7 @@ class Meraki extends phpef {
             $url .= '?' . http_build_query($params);
         }
         
-        // error_log("Full API URL: " . $url);
+        $this->logging->writeLog('Meraki', 'Full API URL: ' . $url, 'debug');
         return $url;
     }
 
@@ -91,7 +91,7 @@ class Meraki extends phpef {
             return $apiToken;
 
         } catch (Exception $e) {
-            error_log("Error getting access token: " . $e->getMessage());
+            $this->logging->writeLog('Meraki', 'Error getting access token: ' . $e->getMessage(), 'error');
             throw $e;
         }
     }
@@ -125,7 +125,7 @@ class Meraki extends phpef {
                 $Result = $this->api->query->$Method($url, $Data, $headers);
             }
 
-            // error_log("API Response: " . json_encode($Result));
+            // $this->logging->writeLog('Meraki', 'API Response: ' . json_encode($Result), 'debug');
 
             if (isset($Result->status_code) && $Result->status_code >= 400) {
                 throw new Exception("API request failed with status code: " . $Result->status_code . ", Response: " . json_encode($Result));
@@ -134,7 +134,7 @@ class Meraki extends phpef {
             return $Result;
 
         } catch (Exception $e) {
-            error_log("Meraki API Error: " . $e->getMessage());
+            $this->logging->writeLog('Meraki', 'Meraki API Error: ' . $e->getMessage(), 'error');
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
@@ -146,6 +146,7 @@ class Meraki extends phpef {
         try {
             $url = $this->getApiEndpoint("");
             // print_r($url);
+            $this->logging->writeLog('Meraki', 'Full API URL: ' . $url, 'debug');
             $this->api->setAPIResponse('Success', 'API URL Retrieved');
             $this->api->setAPIResponseData(['url' => $url]);
             return true;
@@ -157,10 +158,10 @@ class Meraki extends phpef {
 
     public function GetDevicesAvailabilities() {
         try {
-            error_log("Starting GetDevicesAvailabilities request...");
+            $this->logging->writeLog('Meraki', 'Starting GetDevicesAvailabilities request...', 'info');
             $result = $this->makeApiRequest("GET", "devices/availabilities");  
-            error_log("Device availabilities API Result Type: " . gettype($result));
-            error_log("Device availabilities API Raw Result: " . print_r($result, true));
+            $this->logging->writeLog('Meraki', 'Device availabilities API Result Type: ' . gettype($result), 'debug');
+            $this->logging->writeLog('Meraki', 'Device availabilities API Raw Result: ' . print_r($result, true), 'debug');
             
             if ($result === false) {
                 throw new Exception("API call returned false");
@@ -170,7 +171,7 @@ class Meraki extends phpef {
             $this->api->setAPIResponseData($result);
             return true;
         } catch (Exception $e) {
-            error_log("Device availabilities API Error: " . $e->getMessage());
+            $this->logging->writeLog('Meraki', 'Device availabilities API Error: ' . $e->getMessage(), 'error');
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
@@ -201,25 +202,25 @@ class Meraki extends phpef {
             $trafficData = [];
             foreach ($networkIds as $index => $networkId) {
                 $url = str_replace('{networkId}', trim($networkId), 'networks/{networkId}/traffic');
-                error_log("Making traffic request for URL: " . $url);
+                $this->logging->writeLog('Meraki', 'Making traffic request for URL: ' . $url, 'debug');
                 
                 $result = $this->makeApiRequest("GET", $url);
-                error_log("Traffic API result: " . print_r($result, true));
+                $this->logging->writeLog('Meraki', 'Traffic API result: ' . print_r($result, true), 'debug');
                 
                 if ($result === false) {
-                    error_log("Traffic request failed for network: " . $networkId);
+                    $this->logging->writeLog('Meraki', 'Traffic request failed for network: ' . $networkId, 'warning');
                     continue;
                 }
                 
                 if (!empty($result)) {
                     $trafficData[$networkId] = $result;
                 } else {
-                    error_log("Empty traffic result for network: " . $networkId);
+                    $this->logging->writeLog('Meraki', 'Empty traffic result for network: ' . $networkId, 'warning');
                 }
             }
             
             if (empty($trafficData)) {
-                error_log("No traffic data found for any networks");
+                $this->logging->writeLog('Meraki', 'No traffic data found for any networks', 'warning');
                 $this->api->setAPIResponse('Warning', 'No traffic data available');
                 $this->api->setAPIResponseData([]);
             } else {
@@ -228,7 +229,7 @@ class Meraki extends phpef {
             }
             return true;
         } catch (Exception $e) {
-            error_log("NetworksTraffic API Error: " . $e->getMessage());
+            $this->logging->writeLog('Meraki', 'NetworksTraffic API Error: ' . $e->getMessage(), 'error');
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
